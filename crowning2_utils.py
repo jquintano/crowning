@@ -10,9 +10,19 @@ import tempfile
 import pyvista as pv
 import pyvista.plotting.colors as colors
 from itertools import chain
+import math
 
 
+udx_dirpath = '/Users/nimbyx/Projects/CROWNING/cases'
 color_values_list = list(colors.color_names.values())
+
+def string_to_numpy_array(input_string):
+    values = input_string.strip('()').split(', ')
+    try:
+        result_array = np.array([float(value) for value in values])
+        return result_array
+    except ValueError:
+        return None
 
 
 def cross_section(mesh, plane_origin=[0,0,0], plane_normal=[0,0,0]):
@@ -68,14 +78,16 @@ def trimesh_to_vedo(trimesh_mesh):
     vedo_mesh = Mesh([vertices, faces])       
     return vedo_mesh
 
-def pyvista_to_trimesh(pyvista_mesh):
-    # Extract vertices and faces from the PyVista mesh
+def pyvista_to_vedo(pyvista_mesh):
     vertices = pyvista_mesh.points
     faces = pyvista_mesh.faces.reshape(-1, 4)[:, 1:]
-    
-    # Create a trimesh using the extracted vertices and faces
+    vedo_mesh = Mesh([vertices, faces])
+    return vedo_mesh
+
+def pyvista_to_trimesh(pyvista_mesh):
+    vertices = pyvista_mesh.points
+    faces = pyvista_mesh.faces.reshape(-1, 4)[:, 1:]
     trimesh_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    
     return trimesh_mesh
 
 def get_max_plane_idx(arr):
@@ -151,5 +163,61 @@ def compute_angle(point1, point2):
         'y': angle_to_y_axis,
         'z': angle_to_z_axis
     }
-    
     return angles_dict
+
+def compute_angle2(my_mesh):
+    base_edges = pv.wrap(my_mesh).extract_feature_edges(90)
+    my_opp = abs(base_edges.center[1] - pv.wrap(my_mesh).bounds[2]) 
+    my_adj = abs(base_edges.center[0] - pv.wrap(my_mesh).bounds[1])
+    return math.degrees(math.atan(my_opp / my_adj))
+
+def interchange_axes(array, axis1, axis2):
+    new_array = array.copy()
+    new_array[:, [axis1, axis2]] = new_array[:, [axis2, axis1]]
+    return new_array
+
+def get_vertical_position(bounds, point, toothlib):
+    lower_bound, upper_bound = bounds
+    normal = np.array([0, 1, 0])  # 'zx' normal
+    projected_point = np.array([point[0], 0, point[2]])
+    dot_product = np.dot(normal, projected_point)
+    toothlib_copy = toothlib.copy()
+    if dot_product >= np.dot(normal, lower_bound):
+        print('UPPER')
+        toothlib_copy.rotate_y(90, point=toothlib.center, inplace=True).rotate_x(15, point=toothlib.center, inplace=True)
+    else:
+        print('LOWER')
+        toothlib_copy.rotate_y(-90, point=toothlib.center, inplace=True).rotate_x(-15, point=toothlib.center, inplace=True)
+    return toothlib_copy
+
+def gen_move_coords(dst_coord, src_coord):
+    offset_val = 1
+    offset = np.array([0, offset_val, 0])
+    return (dst_coord + offset) - src_coord 
+
+
+def get_horizontal_position(bounds, point, toothlib):
+    left_bound, right_bound = bounds
+    normal = np.array([0, 0, 1])  # 'zx' normal
+    projected_point = np.array([point[0], point[1], 0])
+    dot_product = np.dot(normal, projected_point)
+    toothlib_copy = toothlib.copy()
+    if dot_product >= np.dot(normal, left_bound):
+        # pass
+        print('LEFT')
+        # toothlib_copy.rotate_y(-90, point=toothlib_copy.center, inplace=True)
+        toothlib_copy.rotate_y(180, point=toothlib_copy.center, inplace=True)#.rotate_z(-20, point=toothlib.center, inplace=True)
+    else:
+        print('RIGHT')
+        # toothlib_copy.rotate_z(20, point=toothlib.center, inplace=True)
+        pass
+        # toothlib_copy.rotate_y(180, point=toothlib_copy.center, inplace=True)
+    return toothlib_copy
+
+def callback2(point):
+    mesh = pv.Sphere(center=point, radius=0.009)
+    p1_.add_mesh(mesh, 
+                 # style='wireframe', 
+                 color='r',
+                line_width=20)
+    p1_.add_point_labels(point, [f"{point[0]:.2f}, {point[1]:.2f}, {point[2]:.2f}"])
