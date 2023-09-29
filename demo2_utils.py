@@ -241,7 +241,7 @@ def get_toothnum(zip_file_path):
                 # }
                 break
     except Exception as e:
-        print(f'get_toothnum Exception: {e}')
+        print(f'get_toothnum Exception: {os.path.basename(zip_file_path)} > {e}')
         
     finally:
         shutil.rmtree(temp_dir)
