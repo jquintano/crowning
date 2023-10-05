@@ -194,8 +194,10 @@ def get_vertical_position(bounds, point, toothlib):
 def gen_move_coords(dst_coord, src_coord):
     offset_val = 1
     offset = np.array([0, offset_val, 0])
-    return (dst_coord + offset) - src_coord 
+    return (dst_coord + offset) - src_coord
 
+def gen_move_coords2(dst_coord, src_coord):
+    return np.subtract(dst_coord, src_coord)
 
 def get_horizontal_position(bounds, point, toothlib):
     print('get hor pos')
